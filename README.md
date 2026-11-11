@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # e-COM Expense Tracker — Administrator Web App
 
 Standalone **Administrator** portal for **e-COM Services**, replacing the hand-typed Excel workbook (`docs/expenditure.xlsx`, *"Expenditure Tracker"*). Deployed on its own domain (`admin.expenses.ecom.com`), completely separate from the employee web application.
@@ -106,3 +107,7 @@ Because the Administrator app (`https://admin.expenses.ecom.com`) and the Employ
 3. **Never Invent Missing Values**: Row `Sheet1!AV26:AZ26` (October Electricity) has a unit price (`Ghc 1010`) without a quantity or date; it is skipped and logged as an `error` (`missing_value`).
 4. **Petty Cash Opening Balance**: Derived as `GH₵ 930.25` for January 2026 from the sheet's first *Balance after cash-out* (`GH₵ 792.23` on `2026-01-08`) plus cash-out (`GH₵ 138.02`) on that date, and editable via the **Set opening balance** dialog.
 5. **Cross-Category Duplicate Items**: `"Funnel"` appears under both *Cleaning & Hygiene Supplies* (`B64`) and *Other* (`B124`); de-duplication is scoped per category so both are preserved and flagged so the admin can merge them if desired.
+=======
+# expense-tracker-admin
+This is the official repository for the in-house expense tracker web application
+>>>>>>> dc21bc3597b6aa7b941e0e610bf769cb3b52c91f
