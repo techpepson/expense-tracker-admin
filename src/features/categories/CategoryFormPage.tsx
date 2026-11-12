@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Info } from 'lucide-react'
+import { ArrowLeft, Check, FolderKanban, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   errorMessage,
@@ -148,7 +148,8 @@ export function CategoryFormPage() {
               <Link to="/categories">Cancel</Link>
             </Button>
             <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-              {isEdit ? 'Save changes' : 'Create category'}
+              <Check className="h-4 w-4" />
+              {isEdit ? 'Save Changes' : 'Create Category'}
             </Button>
           </div>
         </form>
@@ -156,10 +157,11 @@ export function CategoryFormPage() {
         {/* Live Badge Preview Card */}
         <div className="lg:col-span-4 space-y-4">
           <div className="app-card space-y-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-              Live badge preview
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+              <FolderKanban className="h-3.5 w-3.5 text-[#2563EB]" />
+              <span>Live badge preview</span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 rounded-[12px] bg-[var(--surface-tint)] p-4">
+            <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-[var(--border-card)] bg-[var(--surface-tint)] p-4">
               <Badge variant="category">{nameVal.trim() || 'Category Name'}</Badge>
               <Badge variant={isActiveVal ? 'active' : 'inactive'}>
                 {isActiveVal ? 'Active' : 'Inactive'}

@@ -4,9 +4,11 @@ import type { ColumnDef } from '@tanstack/react-table'
 import {
   Check,
   GitMerge,
+  Package,
   Pencil,
   Plus,
   Power,
+  RotateCcw,
   Search,
   XCircle,
 } from 'lucide-react'
@@ -86,6 +88,19 @@ export function ItemsPage() {
     () => (allItems ?? []).filter((i) => i.status === 'pending').length,
     [allItems],
   )
+
+  const approvedCount = useMemo(
+    () => (allItems ?? []).filter((i) => i.status === 'approved').length,
+    [allItems],
+  )
+
+  const hasActiveFilters = Boolean(search.trim() || categoryFilter || statusFilter)
+
+  const resetFilters = () => {
+    setSearch('')
+    setCategoryFilter('')
+    setStatusFilter('')
+  }
 
   const filteredItems = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase()
@@ -331,14 +346,14 @@ export function ItemsPage() {
             }}
           >
             <Plus className="h-4 w-4" />
-            + Add item
+            Add Item
           </Button>
         }
       />
 
       {/* Tabs + Filters */}
       <div className="app-card space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 border-b border-[var(--border-divider)] pb-4 lg:flex-row lg:items-center lg:justify-between">
           <Tabs
             value={activeTab}
             onValueChange={(v) =>
@@ -353,8 +368,24 @@ export function ItemsPage() {
             </TabsList>
           </Tabs>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative w-64">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFF6FF] dark:bg-[#172554] px-3 py-1 font-semibold text-[#1E3A8A] dark:text-[#DBEAFE]">
+              <Package className="h-3.5 w-3.5 text-[#2563EB]" />
+              {approvedCount} approved
+            </span>
+            {pendingCount > 0 && (
+              <Badge variant="pending">{pendingCount} awaiting review</Badge>
+            )}
+            <span className="text-[var(--text-secondary)]">
+              · Showing <strong className="text-[var(--text-primary)]">{filteredItems.length}</strong>{' '}
+              {pluralize(filteredItems.length, 'item')}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="relative min-w-[220px] flex-1 max-w-sm">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#475569]" />
               <Input
                 aria-label="Search items"
@@ -365,7 +396,7 @@ export function ItemsPage() {
               />
             </div>
 
-            <div className="w-48">
+            <div className="w-52">
               <Select
                 aria-label="Filter items by category"
                 value={categoryFilter}
@@ -381,7 +412,7 @@ export function ItemsPage() {
             </div>
 
             {activeTab === 'all' && (
-              <div className="w-40">
+              <div className="w-44">
                 <Select
                   aria-label="Filter items by status"
                   value={statusFilter}
@@ -393,6 +424,13 @@ export function ItemsPage() {
                   <option value="inactive">Inactive</option>
                 </Select>
               </div>
+            )}
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset filters
+              </Button>
             )}
           </div>
         </div>
@@ -450,7 +488,8 @@ export function ItemsPage() {
               Cancel
             </Button>
             <Button onClick={handleCreate} disabled={createItem.isPending}>
-              Add item
+              <Plus className="h-4 w-4" />
+              Add Item
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Copy, KeyRound, Pencil, Plus, Search } from 'lucide-react'
+import { Copy, KeyRound, Pencil, Plus, RotateCcw, Search, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { errorMessage, useResetPassword, useUsers } from '@/api'
 import type { Role, User } from '@/types'
 import { useDebounce } from '@/hooks/useDebounce'
+import { pluralize } from '@/lib/formatters'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -35,6 +36,22 @@ export function UsersPage() {
   const resetPassword = useResetPassword()
 
   const [resetResult, setResetResult] = useState<{ user: User; password: string } | null>(null)
+
+  const list = useMemo(() => users ?? [], [users])
+  const stats = useMemo(() => {
+    const admins = list.filter((u) => u.role === 'admin').length
+    const sharedRecorders = list.filter((u) => u.can_record_shared).length
+    const active = list.filter((u) => u.is_active).length
+    return { total: list.length, admins, sharedRecorders, active }
+  }, [list])
+
+  const hasActiveFilters = Boolean(search.trim() || roleFilter || statusFilter)
+
+  const resetFilters = () => {
+    setSearch('')
+    setRoleFilter('')
+    setStatusFilter('')
+  }
 
   const handleResetPassword = async (user: User) => {
     try {
@@ -126,13 +143,32 @@ export function UsersPage() {
           <Button asChild>
             <Link to="/users/new">
               <Plus className="h-4 w-4" />
-              + Add user
+              Add User
             </Link>
           </Button>
         }
       />
 
       <div className="app-card space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border-divider)] pb-3.5">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFF6FF] dark:bg-[#172554] px-3 py-1 font-semibold text-[#1E3A8A] dark:text-[#DBEAFE]">
+              <Users className="h-3.5 w-3.5 text-[#2563EB]" />
+              {pluralize(stats.total, 'user')}
+            </span>
+            <Badge variant="admin">{pluralize(stats.admins, 'admin')}</Badge>
+            <Badge variant="shared">{pluralize(stats.sharedRecorders, 'shared recorder')}</Badge>
+            <Badge variant="active">{stats.active} active</Badge>
+          </div>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset filters
+            </Button>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#475569]" />
@@ -145,7 +181,7 @@ export function UsersPage() {
             />
           </div>
 
-          <div className="w-44">
+          <div className="w-48">
             <Select
               aria-label="Filter users by role"
               value={roleFilter}
@@ -170,7 +206,7 @@ export function UsersPage() {
           </div>
         </div>
 
-        <DataTable columns={columns} data={users ?? []} loading={isLoading} />
+        <DataTable columns={columns} data={list} loading={isLoading} />
       </div>
 
       {/* Reset Password Result Dialog */}

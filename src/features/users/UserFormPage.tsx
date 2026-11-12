@@ -1,9 +1,20 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Info, ShieldCheck, User as UserIcon } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  Eye,
+  EyeOff,
+  Info,
+  KeyRound,
+  ShieldCheck,
+  Sparkles,
+  User as UserIcon,
+  UserPlus,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import {
   errorMessage,
@@ -44,6 +55,7 @@ export function UserFormPage() {
   const updateUser = useUpdateUser()
 
   const isSelf = isEdit && Boolean(currentUser && existing && currentUser.id === existing.id)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -84,6 +96,13 @@ export function UserFormPage() {
   const sharedVal = useWatch({ control, name: 'can_record_shared' })
   const activeVal = useWatch({ control, name: 'is_active' })
 
+  const handleGeneratePassword = () => {
+    const token = `Ecom#${Math.random().toString(36).slice(2, 8).toUpperCase()}26`
+    setValue('password', token, { shouldValidate: true })
+    setShowPassword(true)
+    toast.success('Generated temporary password')
+  }
+
   const onSubmit = handleSubmit(async (values) => {
     try {
       if (isEdit && id) {
@@ -118,74 +137,123 @@ export function UserFormPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-12">
-        <form onSubmit={onSubmit} noValidate className="app-card lg:col-span-8 space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              label="Full name"
-              htmlFor="user-name"
-              required
-              error={errors.full_name?.message}
-            >
-              <Input id="user-name" placeholder="e.g. Efua Boateng" {...register('full_name')} />
-            </FormField>
+        <form onSubmit={onSubmit} noValidate className="app-card lg:col-span-8 space-y-6">
+          <div className="space-y-4">
+            <div className="border-b border-[var(--border-divider)] pb-2.5">
+              <h2 className="text-sm font-bold text-[#1E3A8A] dark:text-[#DBEAFE]">
+                Identity & Sign-in Credentials
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Name and email used to attribute expenses and authenticate across e-COM portals.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                label="Full name"
+                htmlFor="user-name"
+                required
+                error={errors.full_name?.message}
+              >
+                <Input id="user-name" placeholder="e.g. Efua Boateng" {...register('full_name')} />
+              </FormField>
+
+              <FormField
+                label="Email address"
+                htmlFor="user-email"
+                required
+                error={errors.email?.message}
+              >
+                <Input
+                  id="user-email"
+                  type="email"
+                  placeholder="efua@ecom.com"
+                  {...register('email')}
+                />
+              </FormField>
+            </div>
+
+            {!isEdit && (
+              <FormField
+                label="Temporary password"
+                htmlFor="user-password"
+                required
+                hint="Minimum 8 characters. Share this temporary password securely with the user."
+                error={errors.password?.message}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#475569]" />
+                    <Input
+                      id="user-password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="At least 8 characters"
+                      className="pl-10 pr-10"
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? 'Hide temporary password' : 'Show temporary password'}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#1E3A8A] cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleGeneratePassword}>
+                    <Sparkles className="h-3.5 w-3.5 text-[#2563EB]" />
+                    Generate password
+                  </Button>
+                </div>
+              </FormField>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="border-b border-[var(--border-divider)] pb-2.5">
+              <h2 className="text-sm font-bold text-[#1E3A8A] dark:text-[#DBEAFE]">
+                Role & Portal Access
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Determines whether this account signs in on the Employee app or this Admin portal.
+              </p>
+            </div>
 
             <FormField
-              label="Email address"
-              htmlFor="user-email"
+              label="Role"
               required
-              error={errors.email?.message}
+              hint={isSelf ? 'You cannot demote your own administrator account.' : undefined}
             >
-              <Input
-                id="user-email"
-                type="email"
-                placeholder="efua@ecom.com"
-                {...register('email')}
-              />
+              <div role="radiogroup" aria-label="User role" className="grid gap-3 sm:grid-cols-2">
+                <OptionCard
+                  selected={roleVal === 'employee'}
+                  onSelect={() => !isSelf && setValue('role', 'employee')}
+                  disabled={isSelf}
+                  title="Employee"
+                  description="Signs in on the employee site to record personal or designated shared expenses."
+                  icon={<UserIcon className="h-4 w-4 text-[#2563EB]" />}
+                />
+                <OptionCard
+                  selected={roleVal === 'admin'}
+                  onSelect={() => setValue('role', 'admin')}
+                  title="Administrator"
+                  description="Full access to this admin portal: users, catalog, all expenses, petty cash & reports."
+                  icon={<ShieldCheck className="h-4 w-4 text-[#2563EB]" />}
+                />
+              </div>
             </FormField>
           </div>
 
-          {!isEdit && (
-            <FormField
-              label="Temporary password"
-              htmlFor="user-password"
-              required
-              hint="Minimum 8 characters. Share this temporary password securely with the user."
-              error={errors.password?.message}
-            >
-              <Input
-                id="user-password"
-                type="password"
-                placeholder="At least 8 characters"
-                {...register('password')}
-              />
-            </FormField>
-          )}
-
-          <FormField
-            label="Role"
-            required
-            hint={isSelf ? 'You cannot demote your own administrator account.' : undefined}
-          >
-            <div role="radiogroup" aria-label="User role" className="grid gap-3 sm:grid-cols-2">
-              <OptionCard
-                selected={roleVal === 'employee'}
-                onSelect={() => !isSelf && setValue('role', 'employee')}
-                disabled={isSelf}
-                title="Employee"
-                description="Signs in on the employee site to record personal or designated shared expenses."
-                icon={<UserIcon className="h-4 w-4 text-[#2563EB]" />}
-              />
-              <OptionCard
-                selected={roleVal === 'admin'}
-                onSelect={() => setValue('role', 'admin')}
-                title="Administrator"
-                description="Full access to this admin portal: users, catalog, all expenses, petty cash & reports."
-                icon={<ShieldCheck className="h-4 w-4 text-[#2563EB]" />}
-              />
-            </div>
-          </FormField>
-
           <div className="space-y-3">
+            <div className="border-b border-[var(--border-divider)] pb-2.5">
+              <h2 className="text-sm font-bold text-[#1E3A8A] dark:text-[#DBEAFE]">
+                Permissions & Account Status
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Control shared operational recording privileges and sign-in availability.
+              </p>
+            </div>
+
             <OptionCard
               role="checkbox"
               selected={sharedVal}
@@ -213,7 +281,8 @@ export function UserFormPage() {
               <Link to="/users">Cancel</Link>
             </Button>
             <Button type="submit" disabled={createUser.isPending || updateUser.isPending}>
-              {isEdit ? 'Save changes' : 'Create user'}
+              {isEdit ? <Check className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+              {isEdit ? 'Save Changes' : 'Create User'}
             </Button>
           </div>
         </form>
@@ -221,11 +290,12 @@ export function UserFormPage() {
         {/* Side Card: Live Preview */}
         <div className="lg:col-span-4 space-y-4">
           <div className="app-card space-y-4">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
-              Live user preview
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+              <UserIcon className="h-3.5 w-3.5 text-[#2563EB]" />
+              <span>Live user preview</span>
             </div>
 
-            <div className="rounded-[12px] bg-[var(--surface-tint)] p-4 space-y-3">
+            <div className="rounded-[12px] border border-[var(--border-card)] bg-[var(--surface-tint)] p-4 space-y-3">
               <UserChip
                 name={fullNameVal.trim() || 'Full Name'}
                 email={emailVal.trim() || 'user@ecom.com'}
@@ -240,6 +310,30 @@ export function UserFormPage() {
                   {activeVal ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
+            </div>
+
+            <div className="rounded-[12px] border border-[var(--border-divider)] p-3.5 space-y-2 text-xs">
+              <div className="font-semibold text-[#1E3A8A] dark:text-[#DBEAFE]">
+                Effective capabilities
+              </div>
+              <ul className="space-y-1.5 text-[var(--text-secondary)]">
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-[#2563EB]" />
+                  <span>
+                    {roleVal === 'admin'
+                      ? 'Full administrator portal access'
+                      : 'Employee portal sign-in'}
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-[#2563EB]" />
+                  <span>
+                    {sharedVal || roleVal === 'admin'
+                      ? 'Can record shared operational expenses'
+                      : 'Individual expense recording only'}
+                  </span>
+                </li>
+              </ul>
             </div>
 
             <div className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">

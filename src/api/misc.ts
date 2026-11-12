@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AnnualReport, ImportPayload, ImportResultCounts, MonthlyReport, Settings, User } from '@/types'
 import { api } from './client'
+import { normalizeUser } from './auth'
 import { qk } from './queryKeys'
 import { useAuthStore } from '@/stores/auth'
 
@@ -79,7 +80,8 @@ function useSyncMe() {
 export function useUpdateProfile() {
   const sync = useSyncMe()
   return useMutation({
-    mutationFn: async (input: { full_name: string; email: string }) => (await api.put<User>('/api/me', input)).data,
+    mutationFn: async (input: { full_name: string; email: string }) =>
+      normalizeUser((await api.put<User & { id: string | number }>('/api/me', input)).data),
     onSuccess: sync,
   })
 }
@@ -98,7 +100,7 @@ export function useUploadAvatar() {
     mutationFn: async (file: File) => {
       const form = new FormData()
       form.append('avatar', file)
-      return (await api.post<User>('/api/me/avatar', form)).data
+      return normalizeUser((await api.post<User & { id: string | number }>('/api/me/avatar', form)).data)
     },
     onSuccess: sync,
   })

@@ -9,7 +9,10 @@ import { useAuthStore } from '@/stores/auth'
  */
 export const api = axios.create({
   baseURL: env.apiBaseUrl,
-  headers: { Accept: 'application/json' },
+  headers: {
+    Accept: 'application/json',
+    'X-Client-App': 'admin',
+  },
   withCredentials: false,
   timeout: 30_000,
 })
@@ -26,12 +29,17 @@ export function setUnauthorizedHandler(fn: UnauthorizedListener | null): void {
   onUnauthorized = fn
 }
 
+type RawServerError = ApiErrorBody & {
+  detail?: string | { loc?: (string | number)[]; msg?: string }[] | { message?: string; code?: string }
+}
+
 api.interceptors.response.use(
   (r) => r,
-  (error: AxiosError<ApiErrorBody>) => {
+  (error: AxiosError<RawServerError>) => {
     const status = error.response?.status
     const isLogin = error.config?.url?.includes('/api/auth/login')
-    const code = error.response?.data?.code
+    const data = error.response?.data
+    const code = data?.code ?? (typeof data?.detail === 'object' && !Array.isArray(data.detail) ? data.detail?.code : undefined)
     // 401 anywhere (or a non-admin token on a protected route) ends the session.
     if (!isLogin && (status === 401 || (status === 403 && code === 'employee_account'))) {
       useAuthStore.getState().clear()
@@ -55,10 +63,26 @@ export class ApiError extends Error {
 
 export function toApiError(err: unknown): ApiError {
   if (err instanceof ApiError) return err
-  if (axios.isAxiosError<ApiErrorBody>(err)) {
+  if (axios.isAxiosError<RawServerError>(err)) {
     const data = err.response?.data
     if (!err.response) return new ApiError('Cannot reach the server. Check your connection.', 0, 'network_error')
-    return new ApiError(data?.message ?? err.message, err.response.status, data?.code, data?.errors ?? {})
+    const fieldErrors: Record<string, string[]> = { ...(data?.errors ?? {}) }
+    let detailMessage: string | undefined
+    if (typeof data?.detail === 'string') {
+      detailMessage = data.detail
+    } else if (Array.isArray(data?.detail)) {
+      for (const item of data.detail) {
+        const field = String(item.loc?.[item.loc.length - 1] ?? 'form')
+        const msg = item.msg ?? 'Invalid value'
+        fieldErrors[field] = [...(fieldErrors[field] ?? []), msg]
+        if (!detailMessage) detailMessage = msg
+      }
+    } else if (data?.detail && typeof data.detail === 'object') {
+      detailMessage = data.detail.message
+    }
+    const message = data?.message ?? detailMessage ?? err.message
+    const code = data?.code ?? (typeof data?.detail === 'object' && !Array.isArray(data.detail) ? data?.detail?.code : undefined)
+    return new ApiError(message, err.response.status, code, fieldErrors)
   }
   return new ApiError(err instanceof Error ? err.message : 'Something went wrong', 0)
 }
@@ -66,4 +90,3 @@ export function toApiError(err: unknown): ApiError {
 export function errorMessage(err: unknown): string {
   return toApiError(err).message
 }
-
